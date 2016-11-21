@@ -98,6 +98,8 @@ def gconnect():
     login_session.update(data)
 
     user = get_user_id(login_session['email']) or create_user(login_session)
+    login_session['user_id'] = user
+
     flash("you are now logged in as {}".format(login_session['name']))
     return render_template('user_info.html', login_session=login_session)
 
