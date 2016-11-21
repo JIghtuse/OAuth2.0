@@ -15,6 +15,7 @@ from oauth2client.client import FlowExchangeError
 
 GOOGLE_TOKENINFO_URL = 'https://www.googleapis.com/oauth2/v1/tokeninfo'
 GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v1/userinfo'
+GOOGLE_ACCOUNTS_REVOKE_URL = 'https://accounts.google.com/o/oauth2/revoke'
 CLIENT_ID = json.loads(open('client_secrets.json', 'r').read())['web']['client_id']
 app = Flask(__name__)
 
@@ -83,7 +84,7 @@ def gconnect():
         return make_json_response('Current user is already connected.', 200)
 
     # Store the access token in the session for later use
-    login_session['credentials'] = credentials.to_json()
+    login_session['access_token'] = credentials.access_token
     login_session['gplus_id'] = gplus_id
 
     # Get user info
@@ -97,6 +98,21 @@ def gconnect():
     return render_template('user_info.html', login_session=login_session)
 
 
+@app.route('/gdisconnect')
+def gdisconnect():
+    access_token = login_session['access_token']
+    if access_token is None:
+        return make_json_response('Current user not connected.', 401)
+
+    url = GOOGLE_ACCOUNTS_REVOKE_URL + "?token={}".format(access_token)
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[0]
+
+    if result['status'] == '200':
+        login_session.clear()
+        return make_json_response('User successfully disconnected.', 200)
+    else:
+        return make_json_response('Failed to revoke token for given user.', 400)
 
 
 
